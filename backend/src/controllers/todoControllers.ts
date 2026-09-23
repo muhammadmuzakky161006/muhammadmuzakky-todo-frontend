@@ -6,24 +6,143 @@ export const getTodos = async (req: Request, res: Response): Promise<void> => {
 
   try {
     const todos = await TodoModel.getByUserId(userId);
-    res.status(200).json({ success: true, data: todos });
+
+    res.status(200).json({
+      success: true,
+      data: todos
+    });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Gagal mengambil data.' });
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data.'
+    });
   }
 };
 
-export const createTodo = async (req: Request, res: Response): Promise<void> => {
+export const getTodoById = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const id = Number(req.params.id);
+  const userId = res.locals.userId;
+
+  try {
+    const todo = await TodoModel.getById(id, userId);
+
+    if (!todo) {
+      res.status(404).json({
+        success: false,
+        message: 'Tugas tidak ditemukan.'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      data: todo
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Gagal mengambil data tugas.'
+    });
+  }
+};
+
+export const createTodo = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
   const { task } = req.body;
   const userId = res.locals.userId;
 
   try {
     const newId = await TodoModel.create(userId, task);
+
     res.status(201).json({
       success: true,
       message: 'Tugas berhasil ditambahkan!',
-      data: { id: newId, task, is_completed: false }
+      data: {
+        id: newId,
+        task,
+        is_completed: false
+      }
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Gagal menambahkan tugas.' });
+    res.status(500).json({
+      success: false,
+      message: 'Gagal menambahkan tugas.'
+    });
+  }
+};
+
+export const updateTodo = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const id = Number(req.params.id);
+  const { task, is_completed } = req.body;
+  const userId = res.locals.userId;
+
+  try {
+    const result = await TodoModel.update(
+      id,
+      userId,
+      task,
+      is_completed
+    );
+
+    if (result.affectedRows === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'Tugas tidak ditemukan.'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Tugas berhasil diperbarui!',
+      data: {
+        id,
+        task,
+        is_completed
+      }
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Gagal memperbarui tugas.'
+    });
+  }
+};
+
+export const deleteTodo = async (
+  req: Request,
+  res: Response
+): Promise<void> => {
+  const id = Number(req.params.id);
+  const userId = res.locals.userId;
+
+  try {
+    const result = await TodoModel.delete(id, userId);
+
+    if (result.affectedRows === 0) {
+      res.status(404).json({
+        success: false,
+        message: 'Tugas tidak ditemukan.'
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: 'Tugas berhasil dihapus!'
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Gagal menghapus tugas.'
+    });
   }
 };
