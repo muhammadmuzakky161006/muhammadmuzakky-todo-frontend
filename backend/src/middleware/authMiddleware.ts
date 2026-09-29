@@ -1,36 +1,68 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
-export const authenticateToken = (
-  req: Request,
-  res: Response,
-  next: NextFunction
+import type { JwtUserPayload } from '../../types/auth.js';
+import { sendError } from '../utils/response';
+
+export const verifyToken = (
+    req: Request,
+    res: Response,
+    next: NextFunction
 ): void => {
-  const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
 
-  if (!token) {
-    res.status(401).json({
-      success: false,
-      message: 'Akses ditolak, akun tidak ditemukan!'
-    });
-    return;
-  }
+    const authHeader = req.headers.authorization;
 
-  try {
-    const decoded = jwt.verify(
-      token,
-      process.env.JWT_SECRET as string
-    ) as { id: number };
+    if (
+        !authHeader ||
+        !authHeader.startsWith('Bearer ')
+    ) {
+        sendError(
+            res,
+            'Akses ditolak. Token tidak ditemukan!',
+            401
+        );
+        return;
+    }
 
-    res.locals.userId = decoded.id;
+    const token = authHeader.split(' ')[1];
 
-    next();
-  } catch (error) {
-    res.status(403).json({
-      success: false,
-      message: 'Token tidak valid!'
-    });
-    return;
-  }
+    if (!token) {
+        sendError(
+            res,
+            'Akses ditolak. Token tidak ditemukan!',
+            401
+        );
+        return;
+    }
+
+    try {
+
+        const decoded = jwt.verify(
+            token,
+            process.env.JWT_SECRET as string
+        ) as JwtUserPayload;
+
+        // Simpan data user ke request
+        req.user = decoded;
+
+        // Simpan user ID ke res.locals
+        res.locals.userId = decoded.id;
+
+        next();
+
+    } catch (error) {
+
+        console.error(
+            'ERROR VERIFY TOKEN:',
+            error
+        );
+
+        sendError(
+            res,
+            'Token tidak valid atau kedaluwarsa!',
+            403
+        );
+    }
 };
+
+export const authenticateToken = verifyToken;

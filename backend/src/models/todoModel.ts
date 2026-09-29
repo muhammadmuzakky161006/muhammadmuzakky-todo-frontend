@@ -1,13 +1,34 @@
 import pool from '../config/db.js';
 
 export const TodoModel = {
-  getByUserId: async (userId: number) => {
+  getByUserId: async (
+    userId: number,
+    page: number,
+    limit: number
+  ) => {
+    const offset = (page - 1) * limit;
+
     const [rows]: any = await pool.query(
-      'SELECT id, task, is_completed FROM todos WHERE user_id = ? ORDER BY id DESC',
-      [userId]
+      `SELECT id, task, is_completed
+       FROM todos
+       WHERE user_id = ?
+       ORDER BY id DESC
+       LIMIT ? OFFSET ?`,
+      [userId, limit, offset]
     );
 
     return rows;
+  },
+
+  countByUserId: async (userId: number) => {
+    const [rows]: any = await pool.query(
+      `SELECT COUNT(*) AS total
+       FROM todos
+       WHERE user_id = ?`,
+      [userId]
+    );
+
+    return rows[0].total;
   },
 
   getById: async (id: number, userId: number) => {
