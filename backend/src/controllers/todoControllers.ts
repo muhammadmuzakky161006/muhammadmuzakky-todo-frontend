@@ -16,8 +16,10 @@ import {
 } from '../utils/response';
 
 
+// ==========================================
 // Mengubah data dari database
 // is_completed -> completed
+// ==========================================
 const transformTodo = (todo: TodoRow): TodoResponse => ({
     id: todo.id,
     task: todo.task,
@@ -25,7 +27,9 @@ const transformTodo = (todo: TodoRow): TodoResponse => ({
 });
 
 
+// ==========================================
 // Mengambil parameter pagination
+// ==========================================
 const getPagination = (req: Request) => {
     const page = Math.max(
         Number(req.query.page) || 1,
@@ -197,7 +201,6 @@ export const createTodo = async (
 
     } catch (error) {
 
-        // Menampilkan error asli di terminal
         console.error(
             'ERROR CREATE TODO:',
             error
@@ -215,6 +218,7 @@ export const createTodo = async (
 // ==========================================
 // UPDATE TODO
 // PUT /api/todos/:id
+// Dynamic Partial Update
 // ==========================================
 export const updateTodo = async (
     req: Request,
@@ -229,13 +233,40 @@ export const updateTodo = async (
 
     try {
 
+        const updateData: {
+            task?: string;
+            is_completed?: boolean;
+        } = {};
+
+        if (payload.task !== undefined) {
+            updateData.task = payload.task;
+        }
+
+        if (payload.is_completed !== undefined) {
+            updateData.is_completed = payload.is_completed;
+        }
+
         const result = await TodoModel.update(
             id,
             userId,
-            payload.task,
-            payload.is_completed
+            updateData
         );
 
+        // Tidak ada data yang dikirim
+        // untuk diperbarui
+        if (result === null) {
+
+            sendError(
+                res,
+                'Tidak ada data yang diperbarui.',
+                400
+            );
+
+            return;
+        }
+
+        // Todo tidak ditemukan
+        // atau bukan milik user
         if (result.affectedRows === 0) {
 
             sendError(
@@ -247,11 +278,26 @@ export const updateTodo = async (
             return;
         }
 
-        const data: TodoResponse = {
+        // Ambil data terbaru dari database
+        const updatedTodo = await TodoModel.getById(
             id,
-            task: payload.task,
-            completed: payload.is_completed
-        };
+            userId
+        );
+
+        if (!updatedTodo) {
+
+            sendError(
+                res,
+                'Tugas tidak ditemukan.',
+                404
+            );
+
+            return;
+        }
+
+        const data: TodoResponse = transformTodo(
+            updatedTodo as TodoRow
+        );
 
         sendSuccess(
             res,

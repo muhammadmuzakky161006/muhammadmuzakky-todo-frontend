@@ -52,12 +52,35 @@ export const TodoModel = {
   update: async (
     id: number,
     userId: number,
-    task: string,
-    is_completed: boolean
+    data: {
+      task?: string;
+      is_completed?: boolean;
+    }
   ) => {
+    const fields: string[] = [];
+    const values: any[] = [];
+
+    if (data.task !== undefined) {
+      fields.push('task = ?');
+      values.push(data.task);
+    }
+
+    if (data.is_completed !== undefined) {
+      fields.push('is_completed = ?');
+      values.push(data.is_completed);
+    }
+
+    if (fields.length === 0) {
+      return null;
+    }
+
+    values.push(id, userId);
+
     const [result]: any = await pool.query(
-      'UPDATE todos SET task = ?, is_completed = ? WHERE id = ? AND user_id = ?',
-      [task, is_completed, id, userId]
+      `UPDATE todos
+       SET ${fields.join(', ')}
+       WHERE id = ? AND user_id = ?`,
+      values
     );
 
     return result;

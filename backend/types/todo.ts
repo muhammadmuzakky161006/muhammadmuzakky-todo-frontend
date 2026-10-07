@@ -3,8 +3,8 @@ export interface CreateTodoRequest {
 }
 
 export interface UpdateTodoRequest {
-    task: string;
-    is_completed: boolean;
+    task?: string;
+    is_completed?: boolean;
 }
 
 export interface TodoResponse {
